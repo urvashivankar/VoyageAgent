@@ -1,22 +1,22 @@
-# ✈️ TripPilot AI
+#  TripPilot AI
 
-> **An intelligent, Agentic AI-powered travel planning assistant that autonomously generates comprehensive and personalized travel itineraries.**
+**An intelligent, Agentic AI-powered travel planning assistant that autonomously generates comprehensive and personalized travel itineraries.**
 
 TripPilot AI showcases a modern full-stack architecture combined with an advanced AI agent workflow. It uses a swarm of specialized AI agents to analyze user preferences, allocate budgets, recommend accommodations, discover attractions, and compile day-by-day travel plans.
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
-- **🤖 Agentic AI Workflow:** Utilizes `LangGraph` to coordinate specialized LLM agents (Budget, Hotel, Attraction, Itinerary, Expense, and Advisor).
-- **🎨 Modern Frontend:** Built with **Vanilla HTML/JS** and **Tailwind CSS**, featuring a responsive, dark-mode, glassmorphism design with fluid animations.
-- **⚡ Robust Backend:** High-performance **FastAPI** backend with automated interactive API documentation (Swagger/OpenAPI).
-- **🔒 Secure Data & Auth:** JWT-based user authentication and integrated **SQLite** database managed via `SQLAlchemy` ORM for saving trips and selections.
-- **🚀 Scalable Generation:** Intelligent fallback to deterministic trip generation locally when AI services are unavailable or quota-limited.
+- ** Agentic AI Workflow:** Utilizes `LangGraph` to coordinate specialized LLM agents (Budget, Hotel, Attraction, Itinerary, Expense, and Advisor).
+- ** Modern Frontend:** Built with **Vanilla HTML/JS** and **Tailwind CSS**, featuring a responsive, dark-mode, glassmorphism design with fluid animations.
+- ** Robust Backend:** High-performance **FastAPI** backend with automated interactive API documentation (Swagger/OpenAPI).
+- ** Secure Data & Auth:** JWT-based user authentication and integrated **SQLite** database managed via `SQLAlchemy` ORM for saving trips and selections.
+- ** Scalable Generation:** Intelligent fallback to deterministic trip generation locally when AI services are unavailable or quota-limited.
 
 ---
 
-## 🛠️ Technical Stack
+##  Technical Stack
 
 ### Frontend
 - **Framework:** Vanilla HTML5, CSS3, JavaScript
@@ -31,7 +31,7 @@ TripPilot AI showcases a modern full-stack architecture combined with an advance
 
 ---
 
-## 🏗️ Architecture & AI Agent Pipeline
+##  Architecture & AI Agent Pipeline
 
 The application employs a directed graph of AI agents passing a shared state (`TripState`) to one another to progressively build the final trip itinerary. This multi-agent swarm is orchestrated using **LangGraph**.
 
@@ -63,7 +63,7 @@ graph TD
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```text
 TripPilot/
@@ -106,7 +106,7 @@ TripPilot/
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - [Python](https://www.python.org/) 3.10+
@@ -149,7 +149,7 @@ Because the frontend is built with vanilla HTML/JS and uses Tailwind CSS via CDN
 
 ---
 
-## 📡 API Overview
+##  API Overview
 
 The backend exposes a comprehensive RESTful API. Key endpoints include:
 
