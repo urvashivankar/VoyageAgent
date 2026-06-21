@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings – TripPilot AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Shared Dashboard Layout Variables */
+        :root {
+            --bg: #030303; --surface: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.07);
+            --text-primary: #ffffff; --text-secondary: #94a3b8; --hover-bg: rgba(255,255,255,0.05);
+            --primary: #3b82f6; --primary-glow: rgba(59,130,246,0.4); --sidebar-width: 260px;
+        }
+        body.light-mode {
+            --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; --text-primary: #0f172a;
+            --text-secondary: #475569; --hover-bg: #f1f5f9; --primary-glow: rgba(37,99,235,0.2);
+        }
+        body { background: var(--bg); color: var(--text-primary); transition: background 0.3s, color 0.3s; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
+        .app-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-width); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1.5rem; position: fixed; top: 0; bottom: 0; left: 0; z-index: 100; transition: background 0.3s, border 0.3s; }
+        .sidebar-logo { display: flex; align-items: center; gap: .5rem; font-size: 1.25rem; font-weight: 700; text-decoration: none; margin-bottom: 2.5rem; padding: .5rem; }
+        .sidebar-section { font-size: .75rem; font-weight: 600; letter-spacing: .08em; color: var(--text-secondary); text-transform: uppercase; margin-bottom: .75rem; margin-top: 1.5rem; padding: 0 .75rem; }
+        .sidebar-item { display: flex; align-items: center; gap: .875rem; padding: .75rem; border-radius: .75rem; cursor: pointer; color: var(--text-secondary); font-weight: 500; transition: all .2s ease; text-decoration: none; font-size: .95rem; margin-bottom: .25rem; border: none; background: transparent; font-family: inherit; width: 100%; text-align: left; }
+        .sidebar-item:hover { background: var(--hover-bg); color: var(--text-primary); }
+        .sidebar-item.active { background: rgba(59,130,246,0.15); color: var(--primary); }
+        .sidebar-footer { margin-top: auto; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+        .user-badge { display: flex; align-items: center; gap: .75rem; padding: .75rem; }
+        .user-avatar { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #9333ea); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; color: white; }
+        .user-info-sm { flex: 1; overflow: hidden; }
+        .user-info-sm .name { font-weight: 600; font-size: .9rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .user-info-sm .email { font-size: .75rem; color: var(--text-secondary); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+
+        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 2rem 3rem; max-width: calc(100vw - var(--sidebar-width)); }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title { font-size: 2rem; font-weight: 800; margin: 0; }
+        .page-subtitle { color: var(--text-secondary); font-size: .95rem; margin-top: .25rem; }
+        
+        .glass-card { background: var(--surface); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 1rem; padding: 2rem; margin-bottom: 1.5rem; }
+        
+        /* Settings Specific */
+        .settings-layout { display: flex; gap: 2rem; align-items: flex-start; }
+        .settings-tabs { width: 200px; display: flex; flex-direction: column; gap: 0.5rem; }
+        .tab-btn { padding: 0.75rem 1rem; border-radius: 0.5rem; cursor: pointer; color: var(--text-secondary); font-weight: 500; transition: all 0.2s; text-align: left; border: none; background: transparent; font-family: inherit; font-size: 0.95rem; }
+        .tab-btn:hover { background: var(--hover-bg); color: var(--text-primary); }
+        .tab-btn.active { background: rgba(59,130,246,0.1); color: var(--primary); }
+        
+        .settings-content { flex: 1; }
+        .settings-section { display: none; }
+        .settings-section.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; border-bottom: 1px solid var(--border); }
+        .setting-row:last-child { border-bottom: none; }
+        .setting-info h4 { margin: 0 0 0.25rem 0; font-size: 1.05rem; }
+        .setting-info p { margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
+        
+        /* Toggle Switch */
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        .btn-primary { background: linear-gradient(135deg, var(--primary), #9333ea); border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        .btn-primary:hover { transform: translateY(-2px); }
+
+        .btn-danger { background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; padding: 0.8rem 1.5rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        .btn-danger:hover { background: #ef4444; color: white; }
+
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <a href="index.html" class="sidebar-logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="url(#sg)" stroke-width="2">
+                <defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#9333ea"/></linearGradient></defs>
+                <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l5 5-3 3-3-1-1.5 1.5L4 18l1.5 3.5L7 20l-1-3 3-3 5 5 1.2-.7c.4-.2.7-.6.6-1.1z"/>
+            </svg>
+            <span style="background: linear-gradient(135deg, #3b82f6, #9333ea); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">TripPilot AI</span>
+        </a>
+
+        <div class="sidebar-section">Navigation</div>
+        <a class="sidebar-item" href="dashboard.html">Dashboard</a>
+        <a class="sidebar-item" href="create-trip.html">New Trip</a>
+        <a class="sidebar-item" href="saved-plans.html">Saved Plans</a>
+
+        <div class="sidebar-section">Account</div>
+        <a class="sidebar-item" href="profile.html">Profile</a>
+        <a class="sidebar-item active" href="settings.html">Settings</a>
+        <button class="sidebar-item" onclick="logout()">Sign Out</button>
+
+        <div class="sidebar-footer">
+            <div class="user-badge">
+                <div class="user-avatar" id="user-initial">U</div>
+                <div class="user-info-sm">
+                    <div class="name" id="user-name">Loading...</div>
+                    <div class="email" id="user-email">...</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Settings</h1>
+                <p class="page-subtitle">Manage your account settings and preferences.</p>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="settings-layout">
+                <div class="settings-tabs">
+                    <button class="tab-btn active" onclick="switchTab('notifications', this)">Notifications</button>
+                    <button class="tab-btn" onclick="switchTab('appearance', this)">Appearance</button>
+                    <button class="tab-btn" onclick="switchTab('privacy', this)">Privacy & Security</button>
+                </div>
+                
+                <div class="settings-content">
+                    <!-- Notifications Tab -->
+                    <div class="settings-section active" id="sec-notifications">
+                        <h2 style="margin-top:0; margin-bottom:1.5rem;">Notifications</h2>
+                        
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Email Alerts</h4>
+                                <p>Receive trip updates and AI suggestions via email.</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="notif-email" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Price Drop Alerts</h4>
+                                <p>Get notified when flight or hotel prices drop for your saved trips.</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="notif-price">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Promotional Offers</h4>
+                                <p>Receive exclusive travel deals and discounts.</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="notif-promo">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div style="margin-top: 2rem;">
+                            <button class="btn-primary" onclick="saveSettings()">Save Preferences</button>
+                            <span id="save-msg" style="margin-left: 1rem; color: #10b981; display: none;">Saved successfully!</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Appearance Tab -->
+                    <div class="settings-section" id="sec-appearance">
+                        <h2 style="margin-top:0; margin-bottom:1.5rem;">Appearance</h2>
+                        
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Light Mode</h4>
+                                <p>Switch between dark and light themes.</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Privacy Tab -->
+                    <div class="settings-section" id="sec-privacy">
+                        <h2 style="margin-top:0; margin-bottom:1.5rem;">Privacy & Security</h2>
+                        
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Data Collection</h4>
+                                <p>Allow TripPilot to use your anonymized travel data to improve AI recommendations.</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 1rem;">
+                            <div class="setting-info">
+                                <h4>Delete Account</h4>
+                                <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                            </div>
+                            <button class="btn-danger" onclick="if(confirm('Are you sure you want to delete your account?')) alert('Contacting support to delete account.');">Delete Account</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="auth.js"></script>
+<script>
+    requireAuth();
+
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('sec-' + tabId).classList.add('active');
+    }
+
+    const user = getUser();
+    if (user) {
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('user-email').textContent = user.email;
+        document.getElementById('user-initial').textContent = user.name[0].toUpperCase();
+    }
+
+    // Theme logic
+    const themeToggle = document.getElementById('theme-toggle');
+    if (localStorage.getItem('tp_theme') === 'light') {
+        document.body.classList.add('light-mode');
+        themeToggle.checked = true;
+    }
+    themeToggle.addEventListener('change', () => {
+        if (themeToggle.checked) {
+            document.body.classList.add('light-mode');
+            localStorage.setItem('tp_theme', 'light');
+        } else {
+            document.body.classList.remove('light-mode');
+            localStorage.setItem('tp_theme', 'dark');
+        }
+    });
+
+    async function saveSettings() {
+        const emailNotif = document.getElementById('notif-email').checked;
+        const priceNotif = document.getElementById('notif-price').checked;
+        const promoNotif = document.getElementById('notif-promo').checked;
+        
+        try {
+            await fetch('http://localhost:8000/users/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    notification_settings: { email: emailNotif, price: priceNotif, promo: promoNotif }
+                })
+            });
+            document.getElementById('save-msg').style.display = 'inline';
+            setTimeout(() => document.getElementById('save-msg').style.display = 'none', 3000);
+        } catch (err) {
+            console.error("Failed to save", err);
+        }
+    }
+</script>
+</body>
+</html>

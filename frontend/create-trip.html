@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Trip – TripPilot AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { background: #030303; min-height: 100vh; }
+        .create-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .create-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 2.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            background: rgba(3,3,3,0.8);
+            backdrop-filter: blur(12px);
+        }
+        .nav-logo {
+            display: flex; align-items: center; gap: .5rem;
+            font-size: 1.2rem; font-weight: 700;
+            text-decoration: none;
+        }
+        .create-body {
+            flex: 1;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            gap: 3rem;
+        }
+
+        /* Progress Steps */
+        .steps-sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 2rem;
+        }
+        .steps-sidebar h3 {
+            font-size: .8rem;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #475569;
+            margin-bottom: 1.5rem;
+        }
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: .875rem 0;
+            position: relative;
+        }
+        .step-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 1.125rem;
+            top: 3.5rem;
+            width: 2px;
+            height: calc(100% - 1rem);
+            background: rgba(255,255,255,0.08);
+        }
+        .step-item.done::after { background: var(--primary); }
+        .step-num {
+            width: 2.25rem; height: 2.25rem;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: .875rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            background: #030303;
+            z-index: 1;
+            transition: all .3s ease;
+        }
+        .step-item.active .step-num {
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 0 15px rgba(59,130,246,0.4);
+        }
+        .step-item.done .step-num {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+        .step-label { font-size: .95rem; font-weight: 500; color: #475569; }
+        .step-item.active .step-label { color: white; }
+        .step-item.done .step-label { color: #60a5fa; }
+
+        /* Form Card */
+        .form-card {
+            flex: 1;
+            max-width: 640px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            backdrop-filter: blur(12px);
+        }
+        .form-step { display: none; }
+        .form-step.active { display: block; }
+        .step-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: .5rem;
+        }
+        .step-desc {
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+
+        /* Inputs */
+        .form-group { margin-bottom: 1.5rem; }
+        .form-label {
+            display: block;
+            font-size: .875rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: .625rem;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: .875rem 1.25rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: .875rem;
+            color: white;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all .25s ease;
+            outline: none;
+            appearance: none;
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+            background: rgba(59,130,246,0.05);
+        }
+        .form-input::placeholder { color: #334155; }
+
+        /* Destination suggestions */
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .625rem;
+            margin-top: .75rem;
+        }
+        .suggestion-chip {
+            padding: .4rem .9rem;
+            border-radius: 9999px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8;
+            font-size: .85rem;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .suggestion-chip:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(59,130,246,0.1);
+        }
+
+        /* Budget Slider */
+        .budget-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .budget-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            appearance: none;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 10px rgba(59,130,246,0.6);
+            cursor: pointer;
+        }
+        .input-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+        }
+
+        /* Style Selector */
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        .style-card {
+            padding: 1.25rem;
+            border-radius: 1rem;
+            border: 2px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.02);
+            cursor: pointer;
+            text-align: center;
+            transition: all .25s ease;
+        }
+        .style-card:hover { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.05); }
+        .style-card.selected {
+            border-color: var(--primary);
+            background: rgba(59,130,246,0.1);
+            box-shadow: 0 0 20px rgba(59,130,246,0.2);
+        }
+        .style-emoji { font-size: 2rem; margin-bottom: .5rem; }
+        .style-name { font-size: .9rem; font-weight: 600; }
+
+        /* Traveler Counter */
+        .traveler-counter {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .counter-btn {
+            width: 3rem; height: 3rem;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .2s;
+        }
+        .counter-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .counter-val { font-size: 2rem; font-weight: 700; min-width: 2rem; text-align: center; }
+
+        /* Navigation Buttons */
+        .form-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2.5rem;
+        }
+        .btn-prev {
+            padding: .875rem 2rem;
+            border-radius: .75rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            color: #94a3b8;
+            font-size: .95rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all .2s;
+        }
+        .btn-prev:hover { color: white; border-color: white; }
+        .btn-next {
+            padding: .875rem 2rem;
+            border-radius: .75rem;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-size: .95rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all .25s;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .btn-next:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(59,130,246,0.4); }
+        .btn-next:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(3,3,3,0.95);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-title { font-size: 1.75rem; font-weight: 800; margin-bottom: .5rem; }
+        .loading-desc { color: #64748b; margin-bottom: 2rem; }
+        .agents-list { display: flex; flex-direction: column; gap: .75rem; width: 360px; }
+        .agent-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: .875rem 1.25rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: .75rem;
+            transition: all .5s ease;
+        }
+        .agent-row.working { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.08); }
+        .agent-row.done { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.05); }
+        .agent-status { width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 2px solid #334155; flex-shrink: 0; }
+        .agent-row.working .agent-status { border-color: var(--primary); animation: pulse-border 1s infinite; }
+        .agent-row.done .agent-status { background: #10b981; border-color: #10b981; }
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.6); }
+            50% { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div style="text-align:center; max-width:400px;">
+            <div style="margin-bottom:1rem;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <path d="M12 7v4"></path>
+                    <line x1="8" y1="16" x2="8" y2="16"></line>
+                    <line x1="16" y1="16" x2="16" y2="16"></line>
+                </svg>
+            </div>
+            <div class="loading-title">AI Agents are Planning Your Trip</div>
+            <div class="loading-desc">6 specialized agents are collaborating to build your perfect itinerary…</div>
+            <div class="agents-list" id="agents-list">
+                <div class="agent-row" id="agent-budget"><div class="agent-status"></div><span>Budget Agent</span></div>
+                <div class="agent-row" id="agent-hotel"><div class="agent-status"></div><span>Hotel Agent</span></div>
+                <div class="agent-row" id="agent-attraction"><div class="agent-status"></div><span>Attraction Agent</span></div>
+                <div class="agent-row" id="agent-itinerary"><div class="agent-status"></div><span>Itinerary Agent</span></div>
+                <div class="agent-row" id="agent-expense"><div class="agent-status"></div><span>Expense Agent</span></div>
+                <div class="agent-row" id="agent-advisor"><div class="agent-status"></div><span>Travel Advisor</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="create-page">
+        <!-- Navbar -->
+        <nav class="create-nav">
+            <a href="dashboard.html" class="nav-logo">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#cnav)" stroke-width="2">
+                    <defs><linearGradient id="cnav" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#9333ea"/></linearGradient></defs>
+                    <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l5 5-3 3-3-1-1.5 1.5L4 18l1.5 3.5L7 20l-1-3 3-3 5 5 1.2-.7c.4-.2.7-.6.6-1.1z"/>
+                </svg>
+                <span class="gradient-text">TripPilot AI</span>
+            </a>
+            <a href="dashboard.html" style="color:#64748b; text-decoration:none; font-size:.9rem;">← Back to Dashboard</a>
+        </nav>
+
+        <div class="create-body">
+            <!-- Steps Sidebar -->
+            <div class="steps-sidebar">
+                <h3>Planning Steps</h3>
+                <div class="step-item active" id="si-1">
+                    <div class="step-num">1</div>
+                    <div class="step-label">Destination</div>
+                </div>
+                <div class="step-item" id="si-2">
+                    <div class="step-num">2</div>
+                    <div class="step-label">Budget & Duration</div>
+                </div>
+                <div class="step-item" id="si-3">
+                    <div class="step-num">3</div>
+                    <div class="step-label">Preferences</div>
+                </div>
+            </div>
+
+            <!-- Form Card -->
+            <div class="form-card">
+                <!-- Step 1 -->
+                <div class="form-step active" id="step-1">
+                    <h2 class="step-title">Where do you want to go?</h2>
+                    <p class="step-desc">Search for a state, city, or let our categories inspire you.</p>
+                    <div class="form-group" style="position:relative;">
+                        <label class="form-label">Search Destination</label>
+                        <input type="text" id="destination-search" class="form-input" placeholder="Try 'Gujarat', 'Goa', or 'Honeymoon'..." autocomplete="off" oninput="handleSearch(this.value)">
+                        <input type="hidden" id="destination" value="">
+                        
+                        <!-- Search Dropdown -->
+                        <div id="search-dropdown" class="search-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:rgba(15,15,15,0.95); border:1px solid rgba(255,255,255,0.1); border-radius:.5rem; margin-top:.5rem; z-index:50; max-height:250px; overflow-y:auto; backdrop-filter:blur(10px);">
+                            <!-- Results populate here -->
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" style="margin-bottom:.625rem;">Quick Discovery Filters</label>
+                        <div class="suggestions" id="discovery-filters">
+                            <span class="suggestion-chip" onclick="filterCategory('Beach')">🏖 Beaches</span>
+                            <span class="suggestion-chip" onclick="filterCategory('Hill Station')">🏔 Hill Stations</span>
+                            <span class="suggestion-chip" onclick="filterCategory('Honeymoon Destination')">❤️ Honeymoon</span>
+                            <span class="suggestion-chip" onclick="filterCategory('Family Trip')">👨‍👩‍👧 Family</span>
+                            <span class="suggestion-chip" onclick="filterCategory('Adventure Destination')">🏕 Adventure</span>
+                            <span class="suggestion-chip" onclick="filterCategory('Luxury Destination')">💎 Luxury</span>
+                            <span class="suggestion-chip" onclick="filterCategory('Monsoon Escapes')">🌧 Monsoon</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-nav">
+                        <div></div>
+                        <button class="btn-next" onclick="nextStep(1)">Next: Budget & Duration →</button>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="form-step" id="step-2">
+                    <h2 class="step-title">Budget & Duration</h2>
+                    <p class="step-desc">Set your total budget and how many days you'll be traveling.</p>
+                    <div class="form-group">
+                        <label class="form-label">Total Budget</label>
+                        <div class="budget-display">
+                            <span class="budget-value" id="budget-display">₹75,000</span>
+                            <span style="color:#475569; font-size:.875rem;">per person</span>
+                        </div>
+                        <input type="range" id="budget-slider" min="10000" max="500000" step="5000" value="75000" oninput="updateBudget(this.value)">
+                        <div style="display:flex; justify-content:space-between; margin-top:.5rem; color:#475569; font-size:.8rem;">
+                            <span>₹10,000</span><span>₹5,00,000</span>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <div class="form-group">
+                            <label class="form-label">Currency</label>
+                            <select id="currency" class="form-select" onchange="setSelectedCurrency(this.value); updateBudget(document.getElementById('budget-slider').value);">
+                                <option value="INR">INR</option>
+                                <option value="USD">USD</option>
+                                <option value="AED">AED</option>
+                                <option value="EUR">EUR</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Number of Days</label>
+                            <input type="number" id="days" class="form-input" placeholder="5" min="1" max="30" value="5">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Travelers</label>
+                            <div class="traveler-counter">
+                                <button class="counter-btn" onclick="changeTravelers(-1)">−</button>
+                                <div class="counter-val" id="traveler-count">1</div>
+                                <button class="counter-btn" onclick="changeTravelers(1)">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-nav">
+                        <button class="btn-prev" onclick="goStep(1)">← Back</button>
+                        <button class="btn-next" onclick="nextStep(2)">Next: Preferences →</button>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="form-step" id="step-3">
+                    <h2 class="step-title">What's your travel style?</h2>
+                    <p class="step-desc">This helps our AI tailor the perfect experience for you.</p>
+                    <div class="form-group">
+                        <label class="form-label">Travel Style</label>
+                        <div class="style-grid">
+                            <div class="style-card selected" onclick="selectStyle(this, 'Relaxing')">
+                                <div class="style-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                </div>
+                                <div class="style-name">Relaxing</div>
+                            </div>
+                            <div class="style-card" onclick="selectStyle(this, 'Luxury')">
+                                <div class="style-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                </div>
+                                <div class="style-name">Luxury</div>
+                            </div>
+                            <div class="style-card" onclick="selectStyle(this, 'Adventure')">
+                                <div class="style-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                </div>
+                                <div class="style-name">Adventure</div>
+                            </div>
+                            <div class="style-card" onclick="selectStyle(this, 'Cultural')">
+                                <div class="style-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+                                </div>
+                                <div class="style-name">Cultural</div>
+                            </div>
+                            <div class="style-card" onclick="selectStyle(this, 'Family')">
+                                <div class="style-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                </div>
+                                <div class="style-name">Family</div>
+                            </div>
+                            <div class="style-card" onclick="selectStyle(this, 'Backpacker')">
+                                <div class="style-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
+                                </div>
+                                <div class="style-name">Backpacker</div>
+                            </div>
+                            <div class="style-card" onclick="selectStyle(this, 'Romantic')">
+                                <div class="style-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                                </div>
+                                <div class="style-name">Romantic</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-nav">
+                        <button class="btn-prev" onclick="goStep(2)">← Back</button>
+                        <button class="btn-next" id="generate-btn" onclick="generateTrip()">Generate Trip with AI</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="auth.js"></script>
+<script src="api.js"></script>
+<script>
+    requireAuth();
+
+    let currentStep = 1;
+    let travelers = 1;
+    let selectedStyle = 'Relaxing';
+    document.getElementById('currency').value = getSelectedCurrency();
+
+    let searchTimeout;
+    async function handleSearch(query) {
+        const dropdown = document.getElementById('search-dropdown');
+        if (query.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+            try {
+                const response = await apiFetch(`/destinations/search?q=${query}`);
+                
+                if (response.length === 0) {
+                    dropdown.innerHTML = '<div style="padding: 1rem; color: #94a3b8; text-align: center;">No destinations found.</div>';
+                } else {
+                    dropdown.innerHTML = response.map(item => `
+                        <div style="padding: 0.75rem 1rem; display: flex; align-items: center; gap: 1rem; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05);" onclick="selectDestination('${item.name}', '${item.id}')" onmouseover="this.style.background='rgba(59,130,246,0.1)'" onmouseout="this.style.background='transparent'">
+                            <div style="width: 40px; height: 40px; border-radius: 0.5rem; background-image: url('${item.hero_image}'); background-size: cover; background-position: center; flex-shrink: 0;"></div>
+                            <div>
+                                <div style="font-weight: 600; color: white;">📍 ${item.name}</div>
+                                <div style="font-size: 0.8rem; color: #94a3b8;">${item.state} • ${item.category}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                dropdown.style.display = 'block';
+            } catch (err) {
+                console.error("Search failed:", err);
+            }
+        }, 300); // debounce
+    }
+
+    function selectDestination(name, id) {
+        document.getElementById('destination-search').value = name;
+        document.getElementById('destination').value = name;
+        document.getElementById('search-dropdown').style.display = 'none';
+    }
+
+    async function filterCategory(category) {
+        // Find a destination by category and select it for the demo
+        try {
+            const response = await apiFetch(`/destinations/category/${category}`);
+            if (response.length > 0) {
+                const dest = response[0]; // Just pick the first one for quick fill
+                selectDestination(dest.name, dest.id);
+            } else {
+                alert(`No destinations found for category: ${category}`);
+            }
+        } catch (err) {
+            console.error("Category fetch failed", err);
+        }
+    }
+
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#step-1')) {
+            document.getElementById('search-dropdown').style.display = 'none';
+        }
+    });
+
+    function updateBudget(val) {
+        document.getElementById('budget-display').textContent = formatCurrency(parseInt(val), document.getElementById('currency').value);
+    }
+
+    function changeTravelers(delta) {
+        travelers = Math.max(1, Math.min(20, travelers + delta));
+        document.getElementById('traveler-count').textContent = travelers;
+    }
+
+    function selectStyle(card, style) {
+        document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedStyle = style;
+    }
+
+    function goStep(step) {
+        document.getElementById('step-' + currentStep).classList.remove('active');
+        document.getElementById('si-' + currentStep).classList.remove('active');
+        if (currentStep < step) document.getElementById('si-' + currentStep).classList.add('done');
+        currentStep = step;
+        document.getElementById('step-' + currentStep).classList.add('active');
+        document.getElementById('si-' + currentStep).classList.add('active');
+    }
+
+    function nextStep(from) {
+        if (from === 1) {
+            const dest = document.getElementById('destination').value.trim();
+            if (!dest) { alert('Please enter a destination.'); return; }
+        }
+        if (from === 2) {
+            const days = parseInt(document.getElementById('days').value);
+            if (!days || days < 1) { alert('Please enter a valid number of days.'); return; }
+        }
+        document.getElementById('si-' + from).classList.remove('active');
+        document.getElementById('si-' + from).classList.add('done');
+        document.getElementById('step-' + from).classList.remove('active');
+        currentStep = from + 1;
+        document.getElementById('step-' + currentStep).classList.add('active');
+        document.getElementById('si-' + currentStep).classList.add('active');
+    }
+
+    async function generateTrip() {
+        if (!selectedStyle) { alert('Please select a travel style.'); return; }
+        const tripData = {
+            destination: document.getElementById('destination').value.trim(),
+            budget: parseFloat(document.getElementById('budget-slider').value),
+            days: parseInt(document.getElementById('days').value),
+            travelers: travelers,
+            travel_style: selectedStyle,
+            currency: document.getElementById('currency').value
+        };
+
+        // Show loading
+        const overlay = document.getElementById('loading-overlay');
+        overlay.classList.add('active');
+
+        // Animate agents sequentially
+        const agents = ['budget', 'hotel', 'attraction', 'itinerary', 'expense', 'advisor'];
+        async function animateAgents() {
+            for (let i = 0; i < agents.length; i++) {
+                const el = document.getElementById('agent-' + agents[i]);
+                el.classList.add('working');
+                await new Promise(r => setTimeout(r, 1200));
+                el.classList.remove('working');
+                el.classList.add('done');
+                el.querySelector('.agent-status').innerHTML = '✓';
+                el.querySelector('.agent-status').style.cssText = 'color:white; font-size:.7rem; display:flex; align-items:center; justify-content:center;';
+            }
+        }
+
+        try {
+            const [result] = await Promise.all([createTrip(tripData), animateAgents()]);
+            window.location.href = 'results.html?id=' + result.id;
+        } catch (err) {
+            alert('Something went wrong: ' + err.message);
+            overlay.classList.remove('active');
+            document.querySelectorAll('.agent-row').forEach(el => {
+                el.classList.remove('working', 'done');
+                el.querySelector('.agent-status').innerHTML = '';
+            });
+        }
+    }
+</script>
+</body>
+</html>

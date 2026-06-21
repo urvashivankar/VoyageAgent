@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Details – TripPilot AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { background: #030303; min-height: 100vh; }
+        .results-page { min-height: 100vh; display: flex; flex-direction: column; }
+        .results-nav { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2.5rem; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(3,3,3,0.8); backdrop-filter: blur(12px); z-index: 100; position: sticky; top: 0; }
+        .results-body { flex:1; display:flex; flex-direction:column; padding:2rem 1.5rem; max-width:1200px; margin:0 auto; width: 100%; }
+        
+        .tab-header { display:flex; gap:1rem; border-bottom:1px solid var(--glass-border); margin-bottom: 2rem; overflow-x: auto; padding-bottom: 2px;}
+        .tab-header button { padding:.75rem 1.5rem; background:none; border:none; color:var(--text-muted); font-weight:600; cursor:pointer; transition:var(--transition); white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;}
+        .tab-header button:hover { color: var(--text-main); }
+        .tab-header button.active { color:white; border-bottom:2px solid var(--primary); }
+        .tab-header button i { width: 18px; height: 18px; }
+        
+        .tab-content { padding:0; background:transparent; border:none; }
+        .day-card {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .day-title {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin-bottom: 1rem;
+        }
+        .day-title h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--text-main);
+        }
+        .activity-card-row {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-top: 1px solid rgba(255,255,255,0.07);
+        }
+        .activity-photo {
+            width: 100%;
+            min-height: 130px;
+            border-radius: .85rem;
+            background-size: cover;
+            background-position: center;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .activity-heading {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-start;
+            margin-bottom: .5rem;
+        }
+        .activity-title {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            font-size: 1.05rem;
+        }
+        .time-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            color: #bfdbfe;
+            background: rgba(59,130,246,0.12);
+            border: 1px solid rgba(59,130,246,0.25);
+            padding: .35rem .7rem;
+            border-radius: 999px;
+            font-size: .82rem;
+            white-space: nowrap;
+        }
+        .activity-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: .6rem;
+            margin-top: .85rem;
+        }
+        .meta-chip {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            padding: .55rem .65rem;
+            border-radius: .7rem;
+            font-size: .82rem;
+        }
+        .reason-agent-grid {
+            display: grid;
+            grid-template-columns: 1.2fr .8fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .insight-panel {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 1.25rem;
+        }
+        .insight-panel h3 {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            margin: 0 0 1rem;
+            font-size: 1.05rem;
+        }
+        .reason-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: .75rem;
+        }
+        .reason-list li,
+        .agent-trace-row {
+            display: flex;
+            align-items: flex-start;
+            gap: .65rem;
+            color: var(--text-muted);
+        }
+        .agent-trace {
+            display: grid;
+            gap: .75rem;
+        }
+        .agent-check {
+            color: #10b981;
+            flex-shrink: 0;
+            margin-top: .12rem;
+        }
+        .attractions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+        .attraction-card {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .attraction-img {
+            height: 170px;
+            background-size: cover;
+            background-position: center;
+        }
+        .attraction-body {
+            padding: 1rem;
+        }
+        .attraction-title {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-weight: 700;
+            margin-bottom: .5rem;
+        }
+        .attraction-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            margin-top: .85rem;
+        }
+        .top-actions { display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
+        .currency-picker { background:rgba(255,255,255,.05); border:1px solid var(--glass-border); color:white; border-radius:.5rem; padding:.65rem .8rem; }
+        .save-full { width:100%; margin-top:1rem; border-radius:.5rem; }
+        
+        /* Budget Health Card */
+        .budget-health-card {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 1.25rem 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--glass-border);
+        }
+        .budget-health-card.excellent { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3); }
+        .budget-health-card.good { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.3); }
+        .budget-health-card.tight { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3); }
+        .budget-health-card.insufficient { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); }
+        .health-indicator {
+            width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; font-weight: 800; flex-shrink: 0;
+        }
+        .health-indicator.excellent { background: rgba(16,185,129,0.15); color: #10b981; }
+        .health-indicator.good { background: rgba(59,130,246,0.15); color: #3b82f6; }
+        .health-indicator.tight { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .health-indicator.insufficient { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .health-info h4 { margin: 0 0 0.25rem; font-size: 1.05rem; }
+        .health-info p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+        
+        .maps-link { color: #60a5fa; text-decoration: none; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.3rem; }
+        .maps-link:hover { text-decoration: underline; }
+
+        @media print {
+            .results-nav, .tab-header, .btn { display:none !important; }
+            body { background:white; color:#111827; }
+            .day-card, .insight-panel { break-inside:avoid; border-color:#d1d5db; }
+        }
+        @media (max-width: 768px) {
+            .activity-card-row,
+            .reason-agent-grid {
+                grid-template-columns: 1fr;
+            }
+            .activity-meta-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="results-nav">
+        <a href="dashboard.html" class="nav-logo" style="display:flex; align-items:center; gap:0.5rem; text-decoration:none; font-weight:700; font-size:1.25rem;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#cnav)" stroke-width="2"><defs><linearGradient id="cnav" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#9333ea"/></linearGradient></defs><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l5 5-3 3-3-1-1.5 1.5L4 18l1.5 3.5L7 20l-1-3 3-3 5 5 1.2-.7c.4-.2.7-.6.6-1.1z"/></svg>
+            <span class="gradient-text">TripPilot AI</span>
+        </a>
+        <div class="top-actions">
+            <select id="currency-select" class="currency-picker" aria-label="Currency">
+                <option value="INR">INR</option>
+                <option value="USD">USD</option>
+                <option value="AED">AED</option>
+                <option value="EUR">EUR</option>
+            </select>
+            <button class="btn btn-primary" onclick="downloadPDF()">📄 Download PDF</button>
+            <a href="notifications.html" class="btn btn-outline">🔔</a>
+            <a href="dashboard.html" style="color:#64748b; text-decoration:none; font-size:.95rem; font-weight:500; display:flex; align-items:center; gap:0.5rem;">
+                <i data-lucide="arrow-left" style="width:16px; height:16px;"></i> Back
+            </a>
+        </div>
+    </nav>
+    <div class="results-body">
+        
+        <!-- Hero Header Container -->
+        <div id="hero-container">
+            <!-- Skeleton for Hero -->
+            <div class="trip-hero skeleton">
+                <div class="trip-hero-content">
+                    <div class="skeleton-title"></div>
+                    <div class="trip-meta-badges">
+                        <div class="skeleton" style="width:100px; height:30px; border-radius:9999px;"></div>
+                        <div class="skeleton" style="width:120px; height:30px; border-radius:9999px;"></div>
+                        <div class="skeleton" style="width:90px; height:30px; border-radius:9999px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-header" id="tabs-container" style="display:none;">
+            <button class="active" data-tab="itinerary"><i data-lucide="map"></i> Itinerary</button>
+            <button data-tab="attractions"><i data-lucide="camera"></i> Attractions</button>
+            <button data-tab="hotels"><i data-lucide="building"></i> Hotels</button>
+            <button data-tab="budget"><i data-lucide="pie-chart"></i> Budget</button>
+            <button data-tab="tips"><i data-lucide="lightbulb"></i> Tips</button>
+        </div>
+        
+        <div class="tab-content" id="tab-content">
+            <!-- Skeleton for Content -->
+            <div class="skeleton-box"></div>
+            <div class="skeleton-box"></div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="api.js"></script>
+    <script>
+        requireAuth();
+        const params = new URLSearchParams(window.location.search);
+        const tripId = params.get('id') || 'demo';
+        
+        const heroContainer = document.getElementById('hero-container');
+        const contentEl = document.getElementById('tab-content');
+        const tabsContainer = document.getElementById('tabs-container');
+        const tabs = document.querySelectorAll('.tab-header button');
+        
+        let tripData = null;
+        let chartInstance = null;
+
+        // Data Handling Helper
+        function getVal(value, fallback = 'Not Available') {
+            if (value === undefined || value === null || value === '') return fallback;
+            if (Array.isArray(value) && value.length === 0) return fallback;
+            if (typeof value === 'object' && Object.keys(value).length === 0) return fallback;
+            return value;
+        }
+
+        function formatMoney(value) {
+            return formatCurrency(Number(value || 0));
+        }
+
+        const currencySelect = document.getElementById('currency-select');
+        currencySelect.value = getSelectedCurrency();
+        currencySelect.addEventListener('change', () => {
+            setSelectedCurrency(currencySelect.value);
+            renderHero();
+            renderTab(document.querySelector('.tab-header button.active')?.dataset.tab || 'itinerary');
+        });
+
+        async function loadTrip(){
+            try {
+                tripData = await getTrip(tripId);
+                
+                // Initialize icons
+                lucide.createIcons();
+                
+                renderHero();
+                tabsContainer.style.display = 'flex';
+                renderTab('itinerary');
+            } catch(e){
+                console.error(e);
+                contentEl.innerHTML = `
+                    <div class="empty-state">
+                        <i data-lucide="alert-circle" style="width:48px; height:48px; color:#f87171; margin-bottom:1rem;"></i>
+                        <h3 style="color:#f87171;">Failed to load trip data.</h3>
+                        <p style="color:var(--text-muted);">Please try again later or return to the dashboard.</p>
+                    </div>`;
+                lucide.createIcons();
+            }
+        }
+        
+        function renderHero() {
+            if (!tripData) return;
+            
+            const dest = getVal(tripData.destination, 'Unknown Destination');
+            const days = getVal(tripData.days, 1);
+            const budget = getVal(tripData.budget, 0);
+            const travelStyle = getVal(tripData.travel_style, 'Standard');
+            
+            const bgUrl = getVal(tripData.hero_image, 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1920&auto=format&fit=crop');
+            
+            heroContainer.innerHTML = `
+                <div class="trip-hero">
+                    <div class="trip-hero-bg" style="background-image: url('${bgUrl}');"></div>
+                    <div class="trip-hero-overlay"></div>
+                    <div class="trip-hero-content">
+                        <h1 class="trip-hero-title">${dest}</h1>
+                        <div class="trip-meta-badges">
+                            <span class="trip-badge"><i data-lucide="calendar"></i> ${days} Days</span>
+                            <span class="trip-badge"><i data-lucide="wallet"></i> ${formatMoney(budget)} Budget</span>
+                            <span class="trip-badge"><i data-lucide="compass"></i> ${travelStyle} Style</span>
+                            <span class="trip-badge"><i data-lucide="users"></i> ${getVal(tripData.travelers, 1)} Travelers</span>
+                            <span class="trip-badge"><i data-lucide="${tripData.trip_type === 'International' ? 'plane' : 'map-pin'}"></i> ${getVal(tripData.trip_type, 'Domestic')}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function renderTab(tab){
+            tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+            if(!tripData) return;
+            
+            // Destroy chart instance if exists
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+
+            if(tab === 'itinerary'){
+                const itinerary = getVal(tripData.itinerary, []);
+                if (itinerary === 'Not Available' || itinerary.length === 0) {
+                    contentEl.innerHTML = renderEmptyState('map', 'No Itinerary Generated', 'Your AI agent is still working on the perfect plan.');
+                    lucide.createIcons();
+                    return;
+                }
+                
+                let html = renderBudgetHealthCard();
+                html += '<div class="premium-timeline">';
+                itinerary.forEach(day => {
+                    const dayNum = getVal(day.day, '?');
+                    const theme = getVal(day.theme, 'Exploration');
+                    const activities = getVal(day.activities, []);
+                    
+                    html += `
+                    <section class="day-card">
+                        <div class="day-title">
+                            <span class="time-pill"><i data-lucide="calendar-days"></i> Day ${dayNum}</span>
+                            <h3>${theme}</h3>
+                        </div>`;
+                    
+                    if (Array.isArray(activities) && activities.length > 0) {
+                        activities.forEach(act => {
+                            const time = getVal(act.time, 'Anytime');
+                            const startTime = getVal(act.start_time, '');
+                            const title = getVal(act.title, getVal(act.activity, 'Activity'));
+                            const loc = getVal(act.location, 'Local area');
+                            const desc = getVal(act.description, 'A carefully selected stop for this route.');
+                            const travelTime = getVal(act.travel_time, 'Travel time varies');
+                            const cost = getVal(act.estimated_cost, getVal(act.cost, 0));
+                            const icon = getVal(act.icon, 'map-pin');
+                            const image = getVal(act.image, tripData.hero_image);
+                            html += `
+                                <article class="activity-card-row">
+                                    <div class="activity-photo" style="background-image:url('${image}')"></div>
+                                    <div>
+                                        <div class="activity-heading">
+                                            <div class="activity-title"><i data-lucide="${icon}"></i> ${title}</div>
+                                            <span class="time-pill"><i data-lucide="clock-3"></i> ${time}${startTime ? ' · ' + startTime : ''}</span>
+                                        </div>
+                                        <p style="color:var(--text-muted); margin:0;">${desc}</p>
+                                        <div class="activity-meta-grid">
+                                            <div class="meta-chip"><i data-lucide="map-pin"></i> ${loc}</div>
+                                            <div class="meta-chip"><i data-lucide="route"></i> ${travelTime}</div>
+                                            <div class="meta-chip"><i data-lucide="wallet"></i> ${formatMoney(cost)}</div>
+                                        </div>
+                                        ${act.google_maps_link ? `<a href="${act.google_maps_link}" target="_blank" rel="noopener" class="maps-link" style="margin-top:.5rem;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> View on Google Maps</a>` : ''}
+                                    </div>
+                                </article>
+                            `;
+                        });
+                    } else {
+                        html += `<p style="color:var(--text-muted);">Activities recommendation pending.</p>`;
+                    }
+                    
+                    html += `</section>`;
+                });
+                html += renderReasoningAndAgents();
+                contentEl.innerHTML = html;
+
+            } else if(tab === 'attractions'){
+                const attractions = getVal(tripData.attractions, []);
+                if (attractions === 'Not Available' || attractions.length === 0) {
+                    contentEl.innerHTML = renderEmptyState('camera', 'No Attractions Found', 'Attraction recommendations are not available for this trip.');
+                    lucide.createIcons();
+                    return;
+                }
+
+                contentEl.innerHTML = `
+                    <div class="attractions-grid">
+                        ${attractions.map((item, index) => `
+                            <article class="attraction-card">
+                                <div class="attraction-img" style="background-image:url('${getVal(item.image, tripData.hero_image)}')"></div>
+                                <div class="attraction-body">
+                                    <div class="attraction-title">
+                                        <i data-lucide="${getVal(item.icon, 'map-pin')}"></i>
+                                        ${getVal(item.name, 'Attraction')}
+                                    </div>
+                                    <p style="color:var(--text-muted); margin:0;">${getVal(item.description, 'Recommended stop for this destination.')}</p>
+                                    <div class="attraction-meta">
+                                        <span class="meta-chip"><i data-lucide="star"></i> ${getVal(item.rating, '4.4')}</span>
+                                        <span class="meta-chip"><i data-lucide="wallet"></i> ${formatMoney(getVal(item.estimated_cost, 0))}</span>
+                                        <span class="meta-chip"><i data-lucide="clock"></i> ${getVal(item.duration, '2 hr')}</span>
+                                        <span class="meta-chip"><i data-lucide="route"></i> ${getVal(item.distance, getVal(item.travel_time, 'Nearby'))}</span>
+                                    </div>
+                                    <button class="btn btn-primary save-full" onclick="saveAttractionByIndex(${index})">Save</button>
+                                </div>
+                            </article>
+                        `).join('')}
+                    </div>
+                `;
+                
+            } else if(tab === 'hotels'){
+                const hotels = getVal(tripData.hotel_recommendations, []);
+                if (hotels === 'Not Available' || hotels.length === 0) {
+                    contentEl.innerHTML = renderEmptyState('building', 'No Hotels Recommended', 'We couldn\'t find hotels matching your exact criteria.');
+                    lucide.createIcons();
+                    return;
+                }
+                
+                let html = '';
+                hotels.forEach((h, index) => {
+                    const name = getVal(h.name, 'Premium Hotel');
+                    const rating = getVal(h.rating, 'N/A');
+                    const price = getVal(h.price_per_night, getVal(h.price, 'Price Coming Soon'));
+                    const loc = getVal(h.location, 'Central Area');
+                    const reason = getVal(h.description, getVal(h.reason, 'Recommendation Pending'));
+                    
+                    // Default amenities if none provided
+                    const amenities = getVal(h.amenities, ['Free WiFi', 'Pool', 'Breakfast Included', 'Gym']);
+                    
+                    // Use a placeholder image from unsplash (different image per hotel based on index)
+                    const imgUrl = `https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop&sig=${index}`;
+                    
+                    let amenitiesHtml = Array.isArray(amenities) ? amenities.map(a => `<span class="amenity-tag"><i data-lucide="check" style="width:12px; height:12px; color:var(--primary);"></i> ${a}</span>`).join('') : '';
+
+                    html += `
+                    <div class="hotel-card-premium">
+                        <div class="hotel-image" style="background-image: url('${imgUrl}');"></div>
+                        <div class="hotel-details">
+                            <div class="hotel-header">
+                                <h3 class="hotel-title">${name}</h3>
+                                <div class="hotel-rating">
+                                    <i data-lucide="star" style="fill:#fbbf24; color:#fbbf24; width:18px; height:18px;"></i>
+                                    <span style="font-weight:600; color:var(--text-main);">${rating}</span>
+                                </div>
+                            </div>
+                            <div class="hotel-location">
+                                <i data-lucide="map-pin" style="width:16px; height:16px;"></i> ${loc}
+                            </div>
+                            <div class="hotel-price">
+                                ${typeof price === 'number' ? formatMoney(price) + '/night' : price}
+                            </div>
+                            <div class="hotel-amenities">
+                                ${amenitiesHtml}
+                            </div>
+                            <div class="ai-recommendation-box">
+                                <strong><i data-lucide="sparkles" style="width:14px; height:14px; display:inline-block; vertical-align:middle;"></i> AI Reason:</strong> ${reason}
+                            </div>
+                            <div class="hotel-actions">
+                                <button class="btn btn-primary" style="flex:1;" onclick="saveHotelByIndex(${index})">Add To Plan</button>
+                                <button class="btn btn-outline" style="flex:1;">View Details</button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                contentEl.innerHTML = html;
+                
+            } else if(tab === 'budget'){
+                const alloc = getVal(tripData.budget_allocation, {});
+                const total = getVal(tripData.total_estimated_cost, getVal(tripData.budget, 0));
+                
+                if (alloc === 'Not Available' || Object.keys(alloc).length === 0) {
+                    contentEl.innerHTML = renderEmptyState('pie-chart', 'No Budget Data', 'Budget breakdown is not available for this trip.');
+                    lucide.createIcons();
+                    return;
+                }
+                
+                let cardsHtml = '';
+                const labels = [];
+                const dataPoints = [];
+                const colors = ['#3b82f6', '#9333ea', '#f43f5e', '#10b981', '#f59e0b', '#64748b'];
+                
+                let colorIndex = 0;
+                for (const [key, val] of Object.entries(alloc)) {
+                    const title = key.charAt(0).toUpperCase() + key.slice(1);
+                    const amount = typeof val === 'number' ? val : 0;
+                    labels.push(title);
+                    dataPoints.push(convertFromINR(amount));
+                    
+                    cardsHtml += `
+                    <div class="budget-card">
+                        <span style="color:var(--text-muted); font-size:0.9rem;">${title}</span>
+                        <span style="font-size:1.5rem; font-weight:700;">${formatMoney(amount)}</span>
+                    </div>`;
+                    colorIndex++;
+                }
+                
+                contentEl.innerHTML = `
+                <div class="budget-layout">
+                    <div class="budget-cards">
+                        <div class="budget-card budget-total-card">
+                            <span style="color:rgba(255,255,255,0.8); font-size:1rem;">Total Estimated Cost</span>
+                            <span style="font-size:2rem; font-weight:800;">${formatMoney(total)}</span>
+                        </div>
+                        ${cardsHtml}
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="budgetChart"></canvas>
+                    </div>
+                </div>`;
+                
+                // Render Chart
+                const ctx = document.getElementById('budgetChart').getContext('2d');
+                chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: dataPoints,
+                            backgroundColor: colors,
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#f8fafc', padding: 20 }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+                
+            } else if(tab === 'tips'){
+                const t = getVal(tripData.travel_tips, {});
+                if (t === 'Not Available' || Object.keys(t).length === 0) {
+                    contentEl.innerHTML = renderEmptyState('lightbulb', 'No Tips Available', 'We couldn\'t generate specific tips for this destination.');
+                    lucide.createIcons();
+                    return;
+                }
+                
+                const weather = getVal(t.weather_forecast, 'Check the 7-day forecast before departure.');
+                const bestSeason = getVal(t.best_season, 'All year round');
+                const safetyScore = getVal(t.safety_score, '8.0');
+                const transport = getVal(t.local_transport, 'Use registered taxis, app cabs, and hotel transfers.');
+                const emergency = getVal(t.emergency_contacts, ['Emergency: 112']);
+                const localTips = getVal(t.local_tips, ['Embrace the local culture.']);
+                const safety = getVal(t.safety_advice, getVal(t.safety, ['Standard safety precautions apply.']));
+                const packing = getVal(t.packing_suggestions, getVal(t.packing, ['Essentials and comfortable clothing.']));
+                
+                let html = '<div class="tips-grid">';
+                
+                html += `
+                <div class="tip-card">
+                    <div class="tip-header"><i data-lucide="cloud-sun"></i> <h4>Weather Forecast</h4></div>
+                    <div class="tip-content"><p style="color:var(--text-muted);">${weather}</p></div>
+                </div>`;
+
+                // Best Time
+                html += `
+                <div class="tip-card">
+                    <div class="tip-header"><i data-lucide="calendar-clock"></i> <h4>Best Time To Visit</h4></div>
+                    <div class="tip-content"><p style="color:var(--text-muted);">${bestSeason}</p></div>
+                </div>`;
+
+                html += `
+                <div class="tip-card">
+                    <div class="tip-header"><i data-lucide="shield-check"></i> <h4>Safety Score</h4></div>
+                    <div class="tip-content"><p style="color:var(--text-muted);">${safetyScore}/10 with normal city precautions.</p></div>
+                </div>`;
+                
+                // Local Tips
+                html += `
+                <div class="tip-card">
+                    <div class="tip-header"><i data-lucide="bus"></i> <h4>Local Transport</h4></div>
+                    <div class="tip-content"><p style="color:var(--text-muted);">${transport}</p></div>
+                </div>`;
+
+                html += `
+                <div class="tip-card">
+                    <div class="tip-header"><i data-lucide="phone-call"></i> <h4>Emergency Contacts</h4></div>
+                    <div class="tip-content"><ul>${emergency.map(i => `<li><i data-lucide="phone" style="width:14px; height:14px; color:#f59e0b;"></i> <span>${i}</span></li>`).join('')}</ul></div>
+                </div>`;
+
+                html += `
+                <div class="tip-card">
+                    <div class="tip-header"><i data-lucide="users"></i> <h4>Local Tips</h4></div>
+                    <div class="tip-content"><ul>${localTips.map(i => `<li><i data-lucide="check-circle-2" style="width:14px; height:14px; color:var(--primary);"></i> <span>${i}</span></li>`).join('')}</ul></div>
+                </div>`;
+                
+                // Safety
+                html += `
+                <div class="tip-card">
+                    <div class="tip-header"><i data-lucide="shield-check"></i> <h4>Safety Advice</h4></div>
+                    <div class="tip-content"><ul>${safety.map(i => `<li><i data-lucide="alert-triangle" style="width:14px; height:14px; color:#f59e0b;"></i> <span>${i}</span></li>`).join('')}</ul></div>
+                </div>`;
+                
+                // Packing
+                html += `
+                <div class="tip-card">
+                    <div class="tip-header"><i data-lucide="briefcase"></i> <h4>Packing Checklist</h4></div>
+                    <div class="tip-content"><ul>${packing.map(i => `<li><i data-lucide="package" style="width:14px; height:14px; color:var(--secondary);"></i> <span>${i}</span></li>`).join('')}</ul></div>
+                </div>`;
+                
+                html += '</div>';
+                contentEl.innerHTML = html;
+            }
+            
+            // Re-initialize icons for new content
+            lucide.createIcons();
+        }
+        
+        function renderEmptyState(icon, title, desc) {
+            return `
+            <div class="empty-state">
+                <i data-lucide="${icon}" style="width:48px; height:48px; color:var(--text-muted); margin-bottom:1rem;"></i>
+                <h3 style="color:var(--text-main); margin-bottom:0.5rem;">${title}</h3>
+                <p style="color:var(--text-muted);">${desc}</p>
+            </div>`;
+        }
+
+        function renderReasoningAndAgents() {
+            const reasons = getVal(tripData.ai_reasoning, [
+                `Optimized around your ${formatMoney(tripData.budget)} budget.`,
+                'Minimized unnecessary travel distance.',
+                `Prioritized ${getVal(tripData.travel_style, 'balanced').toLowerCase()} attractions.`,
+                'Balanced sightseeing and relaxation.'
+            ]);
+            const agents = getVal(tripData.agent_status, [
+                {agent:'Budget Agent', detail:'Built the category budget.'},
+                {agent:'Hotel Agent', detail:'Matched hotels to budget and location.'},
+                {agent:'Attraction Agent', detail:'Selected real destination attractions.'},
+                {agent:'Itinerary Agent', detail:'Scheduled unique days with timings.'},
+                {agent:'Expense Agent', detail:'Estimated total costs.'},
+                {agent:'Travel Advisor Agent', detail:'Added weather, safety, transport, and packing guidance.'},
+            ]);
+
+            return `
+                <div class="reason-agent-grid">
+                    <section class="insight-panel">
+                        <h3><i data-lucide="brain-circuit"></i> Why this plan?</h3>
+                        <ul class="reason-list">
+                            ${reasons.map(reason => `<li><i data-lucide="check-circle-2" class="agent-check"></i><span>${reason}</span></li>`).join('')}
+                        </ul>
+                    </section>
+                    <section class="insight-panel">
+                        <h3><i data-lucide="workflow"></i> Agent Trace</h3>
+                        <div class="agent-trace">
+                            ${agents.map(item => `
+                                <div class="agent-trace-row">
+                                    <i data-lucide="check-circle-2" class="agent-check"></i>
+                                    <div>
+                                        <div style="color:var(--text-main); font-weight:600;">${getVal(item.agent, 'Agent') === 'Advisor Agent' ? 'Travel Advisor Agent' : getVal(item.agent, 'Agent')} ✓</div>
+                                        <div style="font-size:.85rem;">${getVal(item.detail, 'Completed successfully')}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderBudgetHealthCard() {
+            const feasibility = getVal(tripData.budget_feasibility, 'Good');
+            const level = feasibility.toLowerCase();
+            const icons = { excellent: '✓', good: '●', tight: '⚠', insufficient: '✗' };
+            const messages = {
+                excellent: 'Your budget is very generous for this trip. You can splurge!',
+                good: 'Your budget is well-suited for this destination and duration.',
+                tight: 'Your budget is tight. Consider cutting some activities or choosing budget hotels.',
+                insufficient: 'Your budget may not cover this trip. Consider increasing it or reducing duration.'
+            };
+            return `
+                <div class="budget-health-card ${level}">
+                    <div class="health-indicator ${level}">${icons[level] || '●'}</div>
+                    <div class="health-info">
+                        <h4>Budget Health: ${feasibility}</h4>
+                        <p>${messages[level] || messages.good}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveHotelByIndex(index) {
+            const hotels = getVal(tripData.hotel_recommendations, []);
+            if (Array.isArray(hotels) && hotels[index]) saveTripSelection(tripId, 'hotel', hotels[index]);
+        }
+
+        function saveAttractionByIndex(index) {
+            const attractions = getVal(tripData.attractions, []);
+            if (Array.isArray(attractions) && attractions[index]) saveTripSelection(tripId, 'attraction', attractions[index]);
+        }
+
+        function downloadPDF() {
+            const activeTab = document.querySelector('.tab-header button.active')?.dataset.tab || 'itinerary';
+            renderTab('itinerary');
+
+            const element = document.querySelector('.results-body');
+            const opt = {
+                margin: [0.5, 0.5],
+                filename: `${tripData.destination || 'TripPilot'}_Itinerary.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            showToast('Generating PDF...');
+            html2pdf().set(opt).from(element).save().then(() => {
+                renderTab(activeTab);
+                showToast('PDF downloaded!');
+            }).catch(() => {
+                // Fallback to window.print
+                window.print();
+                renderTab(activeTab);
+            });
+        }
+
+        tabs.forEach(b => b.addEventListener('click', () => renderTab(b.dataset.tab)));
+        loadTrip();
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard – TripPilot AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    
+    <style>
+        :root {
+            --bg: #030303;
+            --surface: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --hover-bg: rgba(255,255,255,0.05);
+            --primary: #3b82f6;
+            --primary-glow: rgba(59,130,246,0.4);
+            --danger: #ef4444;
+            --success: #10b981;
+            --sidebar-width: 260px;
+        }
+        
+        body.light-mode {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --hover-bg: #f1f5f9;
+            --primary-glow: rgba(37,99,235,0.2);
+        }
+
+        body { 
+            background: var(--bg); 
+            color: var(--text-primary); 
+            transition: background 0.3s, color 0.3s;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Layout */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            position: fixed;
+            top: 0; bottom: 0; left: 0;
+            z-index: 100;
+            transition: background 0.3s, border 0.3s;
+        }
+        .sidebar-logo {
+            display: flex; align-items: center; gap: .5rem; font-size: 1.25rem; font-weight: 700;
+            text-decoration: none; margin-bottom: 2.5rem; padding: .5rem;
+        }
+        .sidebar-section {
+            font-size: .75rem; font-weight: 600; letter-spacing: .08em; color: var(--text-secondary);
+            text-transform: uppercase; margin-bottom: .75rem; margin-top: 1.5rem; padding: 0 .75rem;
+        }
+        .sidebar-item {
+            display: flex; align-items: center; gap: .875rem; padding: .75rem; border-radius: .75rem;
+            cursor: pointer; color: var(--text-secondary); font-weight: 500; transition: all .2s ease;
+            text-decoration: none; font-size: .95rem; margin-bottom: .25rem;
+            border: none; background: transparent; font-family: inherit; width: 100%; text-align: left;
+        }
+        .sidebar-item:hover { background: var(--hover-bg); color: var(--text-primary); }
+        .sidebar-item.active { background: rgba(59,130,246,0.15); color: var(--primary); }
+        .sidebar-item svg { flex-shrink: 0; }
+        .sidebar-footer {
+            margin-top: auto; border-top: 1px solid var(--border); padding-top: 1.5rem;
+        }
+        .user-badge { display: flex; align-items: center; gap: .75rem; padding: .75rem; }
+        .user-avatar {
+            width: 2.5rem; height: 2.5rem; border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #9333ea);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem; color: white;
+        }
+        .user-info-sm { flex: 1; overflow: hidden; }
+        .user-info-sm .name { font-weight: 600; font-size: .9rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .user-info-sm .email { font-size: .75rem; color: var(--text-secondary); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem 3rem;
+            max-width: calc(100vw - var(--sidebar-width));
+        }
+        .page-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;
+            flex-wrap: wrap; gap: 1rem;
+        }
+        .page-title { font-size: 2rem; font-weight: 800; margin: 0; }
+        .page-subtitle { color: var(--text-secondary); font-size: .95rem; margin-top: .25rem; }
+        
+        /* Glassmorphism Cards */
+        .glass-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-card:hover {
+            border-color: var(--primary-glow);
+            box-shadow: 0 10px 40px -15px var(--primary-glow);
+            transform: translateY(-2px);
+        }
+        .glass-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        /* Specific Grid Placements */
+        .stat-card { grid-column: span 1; display: flex; flex-direction: column; justify-content: center; }
+        .chart-card { grid-column: span 2; height: 320px; }
+        .map-card { grid-column: span 2; height: 320px; }
+        .table-card { grid-column: span 2; }
+        .upcoming-card { grid-column: span 1; }
+        .ai-card { grid-column: span 1; }
+        .goals-card { grid-column: span 1; }
+        .profile-card { grid-column: span 1; }
+        .activity-card { grid-column: span 2; }
+
+        /* Stats Content */
+        .stat-label { font-size: .875rem; color: var(--text-secondary); margin-bottom: .5rem; }
+        .stat-value { font-size: 2.25rem; font-weight: 800; }
+        .stat-change { font-size: .8rem; color: var(--success); margin-top: .25rem; font-weight: 500; }
+
+        /* Table */
+        .table-container { overflow-x: auto; }
+        .recent-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .recent-table th { padding: 1rem 0.5rem; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
+        .recent-table td { padding: 1rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        .recent-table tr:last-child td { border-bottom: none; }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-completed { background: rgba(16,185,129,0.15); color: #10b981; }
+        .status-planned { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        
+        .btn-sm {
+            padding: 0.4rem 0.75rem; font-size: 0.8rem; border-radius: 0.5rem;
+            background: var(--surface); border: 1px solid var(--border);
+            color: var(--text-primary); cursor: pointer; text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-sm:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Lists (AI, Activity) */
+        .styled-list { list-style: none; padding: 0; margin: 0; }
+        .styled-list li {
+            padding: 0.75rem 0;
+            border-bottom: 1px dashed var(--border);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .styled-list li:last-child { border-bottom: none; }
+        .list-icon { color: var(--primary); margin-top: 0.1rem; }
+        
+        .activity-time { font-size: 0.75rem; color: var(--primary); font-weight: 500; min-width: 60px; }
+
+        /* Upcoming Trip */
+        .upcoming-dest { font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 0.25rem; }
+        .upcoming-meta { margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem; }
+        .upcoming-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-top: 1rem;}
+        .upcoming-val { font-size: 1.1rem; font-weight: 600; }
+
+        /* Progress Bars */
+        .progress-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 500;}
+        .progress-bar-bg { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 1.5rem;}
+        .progress-fill { height: 100%; background: var(--primary); border-radius: 4px; transition: width 1s ease-out; }
+
+        /* Empty State */
+        .empty-state {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 5rem 2rem;
+            background: var(--surface);
+            border: 1px dashed var(--border);
+            border-radius: 1.5rem;
+        }
+        .empty-state-icon { font-size: 4rem; margin-bottom: 1rem; }
+        .empty-state h3 { font-size: 1.5rem; margin-bottom: .75rem; }
+        .empty-state p { color: var(--text-secondary); margin-bottom: 2rem; }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: .5rem;
+            color: transparent !important;
+        }
+        body.light-mode .skeleton {
+            background: linear-gradient(90deg, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.05) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Buttons */
+        .btn-theme {
+            background: var(--surface); border: 1px solid var(--border); color: var(--text-primary);
+            padding: 0.5rem 1rem; border-radius: 0.75rem; cursor: pointer; font-weight: 500; font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-theme:hover { background: var(--hover-bg); }
+
+        /* Leaflet overrides */
+        .leaflet-container { background: var(--bg) !important; font-family: 'Inter', sans-serif;}
+        .leaflet-popup-content-wrapper { background: var(--surface); color: var(--text-primary); border: 1px solid var(--border); backdrop-filter: blur(8px); }
+        .leaflet-popup-tip { background: var(--surface); border: 1px solid var(--border); }
+
+        /* Explorer Level Badge */
+        .explorer-badge {
+            display: flex; align-items: center; gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(147,51,234,0.1));
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .explorer-icon { font-size: 2.5rem; }
+        .explorer-info h3 { margin: 0; font-size: 1.1rem; }
+        .explorer-info p { margin: 0.25rem 0 0; color: var(--text-secondary); font-size: 0.85rem; }
+        .explorer-xp-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-top: 0.5rem; overflow: hidden; }
+        .explorer-xp-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #9333ea); border-radius: 3px; transition: width 1s ease; }
+
+        .streak-badge {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.4rem 0.8rem; border-radius: 999px;
+            background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25);
+            color: #f59e0b; font-weight: 600; font-size: 0.85rem;
+        }
+
+        .action-btns { display: flex; gap: 0.35rem; }
+        .act-btn {
+            width: 30px; height: 30px; border: 1px solid var(--border); background: transparent;
+            color: var(--text-secondary); border-radius: 0.4rem; cursor: pointer; font-size: 0.8rem;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .act-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .act-btn.fav-active { color: #f43f5e; border-color: rgba(244,63,94,0.3); }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-card { grid-column: span 1; }
+            .upcoming-card, .ai-card, .goals-card, .profile-card { grid-column: span 1; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .main-content { margin-left: 0; padding: 1.5rem; max-width: 100vw; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .stat-card, .chart-card, .map-card, .table-card, .upcoming-card, .ai-card, .goals-card, .profile-card, .activity-card { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <a href="index.html" class="sidebar-logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="url(#sg)" stroke-width="2">
+                <defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#9333ea"/></linearGradient></defs>
+                <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l5 5-3 3-3-1-1.5 1.5L4 18l1.5 3.5L7 20l-1-3 3-3 5 5 1.2-.7c.4-.2.7-.6.6-1.1z"/>
+            </svg>
+            <span class="gradient-text" style="background: linear-gradient(135deg, #3b82f6, #9333ea); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">TripPilot AI</span>
+        </a>
+
+        <div class="sidebar-section">Navigation</div>
+        <a class="sidebar-item active" href="dashboard.html">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Dashboard
+        </a>
+        <a class="sidebar-item" href="dashboard.html">My Trips</a>
+        <a class="sidebar-item" href="create-trip.html">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            New Trip
+        </a>
+        <a class="sidebar-item" href="saved-plans.html">Saved Plans</a>
+        <a class="sidebar-item" href="dashboard.html#analytics">Analytics</a>
+        <a class="sidebar-item" href="index.html#destinations">Destinations</a>
+
+        <div class="sidebar-section">Account</div>
+        <a class="sidebar-item" href="profile.html">Profile</a>
+        <a class="sidebar-item" href="settings.html">Settings</a>
+        <a class="sidebar-item" href="notifications.html">Notifications</a>
+        <button class="sidebar-item" onclick="logout()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign Out
+        </button>
+
+        <div class="sidebar-footer">
+            <div class="user-badge">
+                <div class="user-avatar" id="user-initial">U</div>
+                <div class="user-info-sm">
+                    <div class="name" id="user-name">Loading...</div>
+                    <div class="email" id="user-email">...</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title" id="welcome-title">Welcome back, Urvashi 👋</h1>
+                <p class="page-subtitle">Ready for your next adventure?</p>
+            </div>
+            <div style="display:flex; gap:1rem;">
+                <select id="currency-select" class="btn-theme" aria-label="Currency">
+                    <option value="INR">INR</option>
+                    <option value="USD">USD</option>
+                    <option value="AED">AED</option>
+                    <option value="EUR">EUR</option>
+                </select>
+                <a href="notifications.html" class="btn-theme" aria-label="Notifications" style="position:relative; width:42px; padding:.5rem 0;">🔔<span id="notification-dot" style="display:none; position:absolute; top:7px; right:8px; width:8px; height:8px; background:#f43f5e; border-radius:50%;"></span></a>
+                <button id="theme-toggle" class="btn-theme">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    Theme
+                </button>
+                <a href="create-trip.html" class="btn btn-primary">+ Generate New Trip</a>
+            </div>
+        </div>
+
+        <!-- Explorer Level Badge -->
+        <div class="explorer-badge" id="explorer-badge" style="display:none;">
+            <div class="explorer-icon" id="explorer-emoji">🌱</div>
+            <div class="explorer-info" style="flex:1;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 id="explorer-title">Beginner Explorer</h3>
+                    <span class="streak-badge" id="streak-badge">🔥 0 day streak</span>
+                </div>
+                <p id="explorer-desc">Plan more trips to level up!</p>
+                <div class="explorer-xp-bar">
+                    <div class="explorer-xp-fill" id="explorer-xp" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboard-container" class="dashboard-grid">
+            <!-- Stats -->
+            <div class="stat-card glass-card">
+                <div class="stat-label">Total Trips</div>
+                <div class="stat-value skeleton" id="stat-trips">0</div>
+                <div class="stat-change">Lifetime planned</div>
+            </div>
+            <div class="stat-card glass-card">
+                <div class="stat-label">Countries Visited</div>
+                <div class="stat-value skeleton" id="stat-countries">0</div>
+                <div class="stat-change">Unique destinations</div>
+            </div>
+            <div class="stat-card glass-card">
+                <div class="stat-label">Total Budget</div>
+                <div class="stat-value skeleton" id="stat-budget">₹0</div>
+                <div class="stat-change">Across all trips</div>
+            </div>
+            <div class="stat-card glass-card">
+                <div class="stat-label">Total Travel Days</div>
+                <div class="stat-value skeleton" id="stat-days">0</div>
+                <div class="stat-change">Of adventures</div>
+            </div>
+
+            <!-- Charts & Map -->
+            <div class="chart-card glass-card">
+                <h3>Budget Spending Analytics</h3>
+                <div style="height: 240px; width:100%; position:relative;">
+                    <canvas id="budgetChart"></canvas>
+                </div>
+            </div>
+            <div class="map-card glass-card">
+                <h3>Interactive World Map</h3>
+                <div id="worldMap" style="height: 240px; width:100%; border-radius:0.5rem; z-index:1;"></div>
+            </div>
+
+            <!-- Middle Row -->
+            <div class="table-card glass-card">
+                <h3>Recent Trips</h3>
+                <div class="table-container">
+                    <table class="recent-table">
+                        <thead>
+                            <tr>
+                                <th>Destination</th>
+                                <th>Days</th>
+                                <th>Budget</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-trips-tbody">
+                            <tr><td colspan="5" class="skeleton" style="height:40px;"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="upcoming-card glass-card">
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg> Next Trip</h3>
+                <div id="upcoming-content">
+                    <div class="skeleton" style="height:100px; width:100%; margin-top:1rem;"></div>
+                </div>
+            </div>
+            <div class="ai-card glass-card">
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; color:var(--primary);"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg> AI Suggestions</h3>
+                <ul class="styled-list" id="ai-suggestions-list">
+                    <li class="skeleton" style="height:20px; width:100%;"></li>
+                    <li class="skeleton" style="height:20px; width:100%;"></li>
+                    <li class="skeleton" style="height:20px; width:100%;"></li>
+                </ul>
+            </div>
+
+            <!-- Bottom Row -->
+            <div class="goals-card glass-card">
+                <h3>Travel Goals</h3>
+                <div class="progress-header">
+                    <span>Countries Visited</span>
+                    <span id="goal-count">0 / 10</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="goal-progress" class="progress-fill" style="width:0%;"></div>
+                </div>
+                
+                <div class="progress-header">
+                    <span>Trips Planned</span>
+                    <span id="trip-goal-count">0 / 5</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="trip-goal-progress" class="progress-fill" style="width:0%; background:var(--success);"></div>
+                </div>
+            </div>
+            <div class="profile-card glass-card">
+                <h3>Profile Overview</h3>
+                <div class="progress-header">
+                    <span>Profile Strength</span>
+                    <span>80%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-fill" style="width:80%; background:#8b5cf6;"></div>
+                </div>
+                
+                <div style="margin-top:1.5rem; font-size:0.9rem; color:var(--text-secondary);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                        <span>Email Confirmed</span> <span style="color:var(--success);">✓</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                        <span>Preferences Set</span> <span style="color:var(--success);">✓</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>Payment Linked</span> <span style="color:var(--danger);">✗</span>
+                    </div>
+                </div>
+            </div>
+            <div class="activity-card glass-card">
+                <h3>Recent Activity</h3>
+                <ul class="styled-list" id="activity-feed">
+                    <li class="skeleton" style="height:20px; width:100%;"></li>
+                    <li class="skeleton" style="height:20px; width:100%;"></li>
+                </ul>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Scripts -->
+<script src="auth.js"></script>
+<script src="api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<script>
+    requireAuth();
+
+
+    // Theme Toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    if (localStorage.getItem('tp_theme') === 'light') {
+        document.body.classList.add('light-mode');
+    }
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light-mode');
+        const isLight = document.body.classList.contains('light-mode');
+        localStorage.setItem('tp_theme', isLight ? 'light' : 'dark');
+        if (window.budgetChartInstance) {
+            window.budgetChartInstance.options.scales.x.ticks.color = isLight ? '#475569' : '#94a3b8';
+            window.budgetChartInstance.options.scales.y.ticks.color = isLight ? '#475569' : '#94a3b8';
+            window.budgetChartInstance.options.plugins.legend.labels.color = isLight ? '#0f172a' : '#ffffff';
+            window.budgetChartInstance.update();
+        }
+    });
+
+    // Populate user info
+    const user = getUser();
+    if (user) {
+        document.getElementById('user-name').textContent = user.name || 'Traveler';
+        document.getElementById('user-email').textContent = user.email || '';
+        document.getElementById('user-initial').textContent = (user.name || 'U')[0].toUpperCase();
+        document.getElementById('welcome-title').textContent = `Welcome back, ${user.name || 'Urvashi'} 👋`;
+    }
+
+    const currencySelect = document.getElementById('currency-select');
+    currencySelect.value = getSelectedCurrency();
+    currencySelect.addEventListener('change', () => {
+        setSelectedCurrency(currencySelect.value);
+        loadDashboard();
+    });
+
+    function refreshNotificationDot() {
+        const unread = JSON.parse(localStorage.getItem('tp_notifications') || '[]').some(n => !n.read);
+        document.getElementById('notification-dot').style.display = unread ? 'block' : 'none';
+    }
+    refreshNotificationDot();
+    window.addEventListener('tp:notification', refreshNotificationDot);
+
+    // Geocoding Cache
+    async function geocodeCity(cityStr) {
+        const city = cityStr.split(',')[0].trim();
+        const cache = JSON.parse(localStorage.getItem('tp_geocode') || '{}');
+        if (cache[city]) return cache[city];
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+                const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                cache[city] = coords;
+                localStorage.setItem('tp_geocode', JSON.stringify(cache));
+                return coords;
+            }
+        } catch(e) { console.error('Geocode failed for', city); }
+        return null;
+    }
+
+    // Load Dashboard Data
+    async function loadDashboard() {
+        const container = document.getElementById('dashboard-container');
+        try {
+            const trips = await getTrips();
+
+            // EMPTY STATE
+            if (trips.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌍</div>
+                        <h3>No Trips Yet</h3>
+                        <p>Your AI-powered adventure starts with a single trip. Let's go!</p>
+                        <a href="create-trip.html" class="btn btn-primary" style="margin-top:1rem;">✨ Generate Your First Trip</a>
+                    </div>`;
+                return;
+            }
+
+            // Remove Skeletons from Stats
+            const statEls = document.querySelectorAll('.stat-value');
+            statEls.forEach(el => el.classList.remove('skeleton'));
+
+            // Calculate Stats
+            document.getElementById('stat-trips').textContent = trips.length;
+            const uniqueCountries = new Set(trips.map(t => {
+                const parts = t.destination.split(',');
+                return parts[parts.length-1].trim();
+            }));
+            document.getElementById('stat-countries').textContent = uniqueCountries.size;
+            
+            const totalBudget = trips.reduce((s, t) => s + (t.budget || 0), 0);
+            document.getElementById('stat-budget').textContent = formatCurrency(totalBudget);
+            
+            const totalDays = trips.reduce((s, t) => s + (t.days || 0), 0);
+            document.getElementById('stat-days').textContent = totalDays;
+
+            // TABLE: Recent Trips
+            const tbody = document.getElementById('recent-trips-tbody');
+            // Sort by latest first
+            const sortedTrips = [...trips].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+            tbody.innerHTML = sortedTrips.slice(0, 5).map(trip => `
+                <tr>
+                    <td><strong>${trip.destination}</strong></td>
+                    <td>${trip.days} Days</td>
+                    <td>${formatCurrency(trip.budget || 0)}</td>
+                    <td><span class="status-badge status-completed">Completed</span></td>
+                    <td>
+                        <div class="action-btns">
+                            <a href="results.html?id=${trip.id}" class="act-btn" title="View">👁</a>
+                            <button class="act-btn ${trip.is_favorite ? 'fav-active' : ''}" title="Favorite" onclick="handleFav('${trip.id}', this)">♥</button>
+                            <button class="act-btn" title="Duplicate" onclick="handleDup('${trip.id}')">📋</button>
+                            <button class="act-btn" title="Delete" onclick="handleDel('${trip.id}')">🗑</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            // UPCOMING TRIP (Pick the most recent one to mock "upcoming")
+            const nextTrip = sortedTrips[0];
+            const upcomingDiv = document.getElementById('upcoming-content');
+            upcomingDiv.innerHTML = `
+                <div class="upcoming-dest">${nextTrip.destination}</div>
+                <div class="upcoming-meta">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Ready for Adventure
+                </div>
+                <div style="display:flex; gap:2rem;">
+                    <div>
+                        <div class="upcoming-label">Budget</div>
+                        <div class="upcoming-val">${formatCurrency(nextTrip.budget || 0)}</div>
+                    </div>
+                    <div>
+                        <div class="upcoming-label">Duration</div>
+                        <div class="upcoming-val">${nextTrip.days} Days</div>
+                    </div>
+                </div>
+            `;
+
+            // GOALS
+            const goalCount = document.getElementById('goal-count');
+            const goalProgress = document.getElementById('goal-progress');
+            goalCount.textContent = `${uniqueCountries.size} / 10`;
+            goalProgress.style.width = Math.min((uniqueCountries.size / 10) * 100, 100) + '%';
+            
+            const tripGoalCount = document.getElementById('trip-goal-count');
+            const tripGoalProgress = document.getElementById('trip-goal-progress');
+            tripGoalCount.textContent = `${trips.length} / 5`;
+            tripGoalProgress.style.width = Math.min((trips.length / 5) * 100, 100) + '%';
+
+            // ACTIVITY FEED
+            const activityFeed = document.getElementById('activity-feed');
+            activityFeed.innerHTML = sortedTrips.slice(0, 4).map(trip => {
+                const date = new Date(trip.created_at);
+                const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const dateStr = date.toLocaleDateString([], {month: 'short', day:'numeric'});
+                return `
+                    <li>
+                        <div class="activity-time">${dateStr}</div>
+                        <div>
+                            <div style="color:var(--text-primary); font-weight:500;">AI Itinerary Generated</div>
+                            <div style="font-size:0.8rem; color:var(--text-secondary);">Trip planned to ${trip.destination} for ${trip.days} days.</div>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+
+            // AI SUGGESTIONS (Mocking context based on latest trip)
+            const aiList = document.getElementById('ai-suggestions-list');
+            aiList.innerHTML = `
+                <li><span class="list-icon">✦</span> ${nextTrip.destination.split(',')[0]} is currently entering peak season. Book hotels early!</li>
+                <li><span class="list-icon">✦</span> You spent 40% of your budget on hotels. Try looking at boutique options.</li>
+                <li><span class="list-icon">✦</span> Based on your ${nextTrip.travel_style || 'chosen'} style, consider visiting Tokyo next.</li>
+            `;
+
+            // Explorer Level
+            updateExplorerLevel(trips);
+
+            // CHART.JS: Budget Analytics
+            const ctx = document.getElementById('budgetChart').getContext('2d');
+            const isLight = document.body.classList.contains('light-mode');
+            const labels = sortedTrips.slice(0, 5).reverse().map(t => t.destination.split(',')[0].substring(0, 10));
+            const data = sortedTrips.slice(0, 5).reverse().map(t => t.budget);
+            
+            window.budgetChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Budget (' + getSelectedCurrency() + ')',
+                        data: data.map(value => convertFromINR(value)),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: isLight ? '#0f172a' : '#ffffff' } }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(128,128,128,0.1)' },
+                            ticks: { color: isLight ? '#475569' : '#94a3b8' }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: isLight ? '#475569' : '#94a3b8' }
+                        }
+                    }
+                }
+            });
+
+            // LEAFLET MAP
+            const map = L.map('worldMap').setView([20, 0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            // Add pins
+            for (const trip of uniqueCountries) {
+                const coords = await geocodeCity(trip);
+                if (coords) {
+                    L.marker(coords).addTo(map).bindPopup(trip);
+                }
+            }
+
+        } catch(err) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠</div>
+                    <h3>Could not load dashboard</h3>
+                    <p>${err.message}</p>
+                </div>`;
+        }
+    }
+
+    loadDashboard();
+
+    // Trip management handlers
+    function handleFav(tripId, btn) {
+        const isFav = toggleFavorite(tripId);
+        btn.classList.toggle('fav-active', isFav);
+    }
+    function handleDup(tripId) {
+        duplicateTrip(tripId);
+        loadDashboard();
+    }
+    function handleDel(tripId) {
+        if (confirm('Delete this trip? This cannot be undone.')) {
+            deleteTrip(tripId);
+            loadDashboard();
+        }
+    }
+
+    // Explorer Level Logic
+    function updateExplorerLevel(trips) {
+        const badge = document.getElementById('explorer-badge');
+        if (!trips || trips.length === 0) { badge.style.display = 'none'; return; }
+        badge.style.display = 'flex';
+
+        const count = trips.length;
+        let level, emoji, desc, xp;
+        if (count >= 20) { level = 'Legendary Explorer'; emoji = '🏆'; desc = 'You are a master of travel!'; xp = 100; }
+        else if (count >= 10) { level = 'Expert Explorer'; emoji = '🌟'; desc = `${20 - count} trips to Legendary!`; xp = (count / 20) * 100; }
+        else if (count >= 5) { level = 'Adventurer'; emoji = '⛰️'; desc = `${10 - count} trips to Expert!`; xp = (count / 10) * 100; }
+        else if (count >= 2) { level = 'Traveler'; emoji = '✈️'; desc = `${5 - count} trips to Adventurer!`; xp = (count / 5) * 100; }
+        else { level = 'Beginner Explorer'; emoji = '🌱'; desc = 'Plan more trips to level up!'; xp = (count / 2) * 100; }
+
+        document.getElementById('explorer-title').textContent = level;
+        document.getElementById('explorer-emoji').textContent = emoji;
+        document.getElementById('explorer-desc').textContent = desc;
+        document.getElementById('explorer-xp').style.width = Math.min(xp, 100) + '%';
+
+        // Streak: count consecutive months with trips
+        const months = new Set(trips.map(t => {
+            const d = new Date(t.created_at);
+            return `${d.getFullYear()}-${d.getMonth()}`;
+        }));
+        document.getElementById('streak-badge').textContent = `🔥 ${months.size} month streak`;
+    }
+</script>
+</body>
+</html>

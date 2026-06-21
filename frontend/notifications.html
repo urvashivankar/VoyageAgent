@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - TripPilot AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body{background:#030303}.shell{max-width:900px;margin:0 auto;padding:2rem}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}.list{display:grid;gap:.85rem}.item{display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:start;background:rgba(255,255,255,.035);border:1px solid var(--glass-border);border-radius:.5rem;padding:1rem}.icon{width:42px;height:42px;border-radius:.5rem;display:grid;place-items:center;background:rgba(59,130,246,.16)}.muted{color:var(--text-muted)}.empty{text-align:center;border:1px dashed var(--glass-border);border-radius:.5rem;padding:4rem 1rem;background:rgba(255,255,255,.025)}@media(max-width:650px){.shell{padding:1rem}.item{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<main class="shell">
+    <div class="topbar"><a href="dashboard.html" class="logo"><span class="gradient-text">TripPilot AI</span></a><button class="btn btn-outline" onclick="markRead()">Mark all read</button></div>
+    <h1>Notifications</h1>
+    <section id="list" class="list"></section>
+</main>
+<script src="auth.js"></script><script src="api.js"></script>
+<script>
+requireAuth();
+function seedNotifications() {
+    const current = JSON.parse(localStorage.getItem('tp_notifications') || '[]');
+    if (current.length) return current;
+    const demo = [
+        {title:'Weather updates', message:'Check coastal humidity and rain chances before your next Goa plan.', type:'weather'},
+        {title:'Budget alerts', message:'Your saved plans now show converted totals in your chosen currency.', type:'budget'},
+    ].map((n,i)=>({id:String(i+1), read:false, created_at:new Date(Date.now()-i*3600000).toISOString(), ...n}));
+    localStorage.setItem('tp_notifications', JSON.stringify(demo));
+    return demo;
+}
+function render() {
+    const items = seedNotifications();
+    document.getElementById('list').innerHTML = items.length ? items.map(n => `
+        <article class="item">
+            <div class="icon">${n.type === 'success' ? '✓' : n.type === 'weather' ? '☁' : n.type === 'budget' ? '₹' : '🔔'}</div>
+            <div><h3 style="margin:0 0 .25rem;">${n.title}</h3><p class="muted" style="margin:0;">${n.message}</p></div>
+            <time class="muted">${new Date(n.created_at).toLocaleString()}</time>
+        </article>`).join('') : `<div class="empty"><h2>No notifications</h2><p>Trip generated, hotel saved, weather updates, and budget alerts will appear here.</p></div>`;
+}
+function markRead(){
+    const items = JSON.parse(localStorage.getItem('tp_notifications') || '[]').map(n => ({...n, read:true}));
+    localStorage.setItem('tp_notifications', JSON.stringify(items));
+    showToast('Notifications marked as read');
+    render();
+}
+render();
+</script>
+</body>
+</html>
