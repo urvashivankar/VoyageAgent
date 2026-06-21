@@ -8,11 +8,11 @@ TripPilot AI showcases a modern full-stack architecture combined with an advance
 
 ##  Key Features
 
-- ** Agentic AI Workflow:** Utilizes `LangGraph` to coordinate specialized LLM agents (Budget, Hotel, Attraction, Itinerary, Expense, and Advisor).
-- ** Modern Frontend:** Built with **Vanilla HTML/JS** and **Tailwind CSS**, featuring a responsive, dark-mode, glassmorphism design with fluid animations.
-- ** Robust Backend:** High-performance **FastAPI** backend with automated interactive API documentation (Swagger/OpenAPI).
-- ** Secure Data & Auth:** JWT-based user authentication and integrated **SQLite** database managed via `SQLAlchemy` ORM for saving trips and selections.
-- ** Scalable Generation:** Intelligent fallback to deterministic trip generation locally when AI services are unavailable or quota-limited.
+-  Agentic AI Workflow:** Utilizes `LangGraph` to coordinate specialized LLM agents (Budget, Hotel, Attraction, Itinerary, Expense, and Advisor).
+-  Modern Frontend:** Built with **Vanilla HTML/JS** and **Tailwind CSS**, featuring a responsive, dark-mode, glassmorphism design with fluid animations.
+-  Robust Backend:** High-performance **FastAPI** backend with automated interactive API documentation (Swagger/OpenAPI).
+-  Secure Data & Auth:** JWT-based user authentication and integrated **SQLite** database managed via `SQLAlchemy` ORM for saving trips and selections.
+-  Scalable Generation:** Intelligent fallback to deterministic trip generation locally when AI services are unavailable or quota-limited.
 
 ---
 
